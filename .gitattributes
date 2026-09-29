@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+*.STL binary
+*.stl binary
+*.usd binary
+*.usda binary
+*.usdc binary

@@ -1,0 +1,47 @@
+# Unitree G1, 29-DoF variant. Source: unitreerobotics/unitree_ros
+# (BSD-3-Clause), rev 7d6075f7f58588b189b940130e3edab3c839b2df, gitman
+# source name "unitree_ros" -- see gitman.yml and docs/vendor-assets.md.
+#
+# schema is defined once in robot_description/tools/robot_schema.py.
+# Unknown keys here are a HARD ERROR (strict loader) -- if you're adding a
+# new option, add it to robot_schema.py first.
+#
+# This file only names the source URDF and what validate.py should expect
+# from it -- it does NOT configure a conversion step. robot.py spawns
+# directly from `source.path` via Isaac Lab's UrdfFileCfg (converts to USD
+# on the fly at spawn time); importer options (merge_fixed_joints,
+# collision_type, joint_drive gains, ...) live as Python defaults on
+# robot_description.robots.urdf_common.RobotUrdfFileCfg instead.
+schema_version: 1
+robot: unitree_g1
+enabled: true
+
+source:
+  format: urdf
+  vendor: unitree_ros
+  path: robots/g1_description/g1_29dof_rev_1_0.urdf
+  # The vendor ships a hand-authored MJCF beside the URDF; consumed as-is by
+  # LearningRLsim. NOT derived from `path` by suffix swap -- see paths.mjcf_path().
+  # The URDF-in-MuJoCo fallback is not usable here anyway: MuJoCo resolves
+  # this vendor's relative mesh refs to meshes/meshes/....
+  mjcf_path: robots/g1_description/g1_29dof_rev_1_0.xml
+  ros_package_paths: [] # relative mesh refs in this vendor repo -- nothing to map
+
+validate:
+  expected_dof: 29 # catches a silent variant swap (e.g. the 23-DoF or 43-DoF G1 URDFs)
+  total_mass:
+    value: 33.341
+    rel_tol: 0.01
+  min_link_mass: 0.0001
+  massless_links: []
+  nominal_joint_pos:
+    # Must match robots/unitree_g1/robot.py's init_state.joint_pos exactly
+    # (validate.py D4) -- Level B's self-collision check runs at this pose.
+    # This is UNITREE_G1_29DOF_CFG's standing pose (not the crouched
+    # UNITREE_G1_29DOF_MIMIC_CFG pose robot.py's gains/limits otherwise follow).
+    ".*_hip_pitch_joint": -0.1
+    ".*_knee_joint": 0.3
+    ".*_ankle_pitch_joint": -0.2
+  joint_limit_margin: 0.02
+  allow_self_collision_pairs: [] # empty = zero self-contacts required at nominal pose
+  mesh_budget_mb: 200.0 # guards against an accidental high-poly mesh swap inflating the build

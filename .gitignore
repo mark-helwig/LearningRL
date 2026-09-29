@@ -1,0 +1,46 @@
+# --- Python build / install byproducts ----------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Tooling caches ------------------------------------------------------------
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# --- Environments --------------------------------------------------------------
+.venv/
+venv/
+
+# --- robot_description: gitman vendor checkouts and the USD conversion cache ---
+robot_description/vendor/
+robot_description/build/
+
+# --- Training / sim2sim output -------------------------------------------------
+# Training writes to <cwd>/logs/; sim2sim bags land next to the run directory.
+logs/
+outputs/
+wandb/
+*.mp4
+*.mcap
+LearningRLsim/out/
+
+# --- Generated Foxglove layouts ------------------------------------------------
+# tools/foxglove_layout.py writes layouts/<robot>_sim2sim.json naming an ABSOLUTE
+# URDF path, valid only on the machine that wrote it. The template is tracked.
+LearningRLsim/layouts/*_sim2sim.json
+
+# --- onnxruntime telemetry -----------------------------------------------------
+# onnxruntime tries to persist a device id to this literally-named file in the CWD.
+:memory:.ses
+
+# --- Editors / OS --------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~

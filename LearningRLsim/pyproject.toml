@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "LearningRLsim"
+version = "0.0.0"
+description = "MuJoCo sim2sim evaluation for policies trained in LearningRLlab: replays an exported run directory in MuJoCo on a CPU-only machine."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+authors = [{ name = "Mark Helwig" }]
+
+# NOT deliberately empty -- the one place this package diverges from its
+# siblings. LearningRLlab and robot_description declare (almost) nothing because
+# they run inside the training image, where everything they import already
+# exists. LearningRLsim must also install on a CPU-only machine with no Isaac Sim,
+# no CUDA and no container, so its real runtime dependencies are declared here
+# and resolved from PyPI. In the training image they are already satisfied.
+#
+# `robot_description` is deliberately NOT listed even though LearningRLsim imports it
+# to resolve robot models -- it is a private, path-installed package with no
+# PyPI presence, so declaring it would make `pip install -e` try to resolve it
+# against PyPI and fail. Install order is enforced by convention instead:
+# robot_description before LearningRLsim.
+# `mcap` is pure Python and has no native extension, so it costs nothing on
+# the CPU-only path; `zstandard` backs the bag's chunk compression and already
+# ships in the image. `foxglove-websocket` is the live sink, 14 kB over
+# `websockets` and likewise pure Python -- watching a rollout is not a
+# workstation-only feature, so it is a real dependency and not an extra.
+dependencies = [
+    "mujoco>=3.8,<4",
+    "onnxruntime>=1.17",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "mcap>=1.2",
+    "zstandard>=0.22",
+    "foxglove-websocket>=0.1.2",
+]
+
+# A console script, not only `python -m`: its sys.path[0] is the venv's bin/, so the
+# monorepo root's `LearningRLsim/` directory cannot shadow the installed package.
+[project.scripts]
+learningrl-sim = "LearningRLsim.eval:main"
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6", "pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["LearningRLsim", "LearningRLsim.*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "C90", "SIM", "RET"]
+ignore = [
+    "RET504",
+    "RET505",
+    "SIM102",
+    "SIM103",
+    "SIM108",
+    "SIM117",
+    "SIM118",
+    "UP006",
+    "UP018",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 30
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+markers = [
+    "static: tests that need no MuJoCo model and no robot_description; safe to run anywhere.",
+]

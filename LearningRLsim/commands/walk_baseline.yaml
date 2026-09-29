@@ -1,0 +1,19 @@
+name: walk_baseline
+duration: 35.0
+interpolation: step
+
+commands:
+  base_velocity:
+    - {t: 0.0,  lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 0.0}
+    - {t: 5.0,  lin_vel_x: 1.0, lin_vel_y: 0.0, ang_vel_z: 0.0}
+    - {t: 10.0,  lin_vel_x: -1.0, lin_vel_y: 0.0, ang_vel_z: 0.0}
+    - {t: 15.0, lin_vel_x: 0.0, lin_vel_y: 1.0, ang_vel_z: 0.0}
+    - {t: 20.0, lin_vel_x: 0.0, lin_vel_y: -1.0, ang_vel_z: 0.0}
+    - {t: 25.0, lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 1.0}
+    - {t: 30.0, lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: -1.0}
+    - {t: 35.0,  lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 0.0}
+
+
+events:
+  - {t: 2.0,  event: mark, label: gait starts}
+  - {t: 35.0, event: mark, label: commanded stop}

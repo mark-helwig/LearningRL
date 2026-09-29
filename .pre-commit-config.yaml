@@ -1,0 +1,12 @@
+# ruff only -- not black/isort/flake8. Each sub-project's pyproject.toml carries its
+# own ruff config, and ruff picks up the nearest one for every file it checks.
+#
+# This hook is local-developer convenience. The authoritative gate is
+# `ruff check . && ruff format --check .` from the repo root.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format

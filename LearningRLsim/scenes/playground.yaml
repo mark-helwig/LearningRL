@@ -1,0 +1,34 @@
+# Things to walk into under `--keyboard`. Nothing here is an experiment -- it
+# is what makes scene objects a general capability rather than a hook for one.
+name: playground
+objects:
+  - name: crate
+    shape: box
+    size: [0.2, 0.2, 0.2]
+    mass: 4.0
+    pos: [2.0, 0.0, 0.2]
+
+  - name: ball
+    shape: sphere
+    size: [0.15]
+    mass: 0.6
+    friction: 0.3
+    rgba: [0.16, 0.47, 0.84, 1.0]
+    pos: [2.5, 1.2, 0.15]
+
+  - name: drum
+    shape: cylinder
+    size: [0.18, 0.25]
+    mass: 6.0
+    rgba: [0.11, 0.69, 0.48, 1.0]
+    pos: [1.5, -1.5, 0.25]
+
+  # The one you drop where you want it, with `b`.
+  - name: puck
+    shape: cylinder
+    size: [0.12, 0.05]
+    mass: 1.0
+    rgba: [0.93, 0.63, 0.0, 1.0]
+    spawn: deferred
+    ahead: 0.6
+    staging: [0.0, -30.0]

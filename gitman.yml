@@ -1,0 +1,63 @@
+location: robot_description/vendor
+
+sources:
+  - repo: https://github.com/Roboparty/rpo_description
+    name: rpo_description
+    rev: main
+    type: git
+    params:
+    sparse_paths:
+      - urdf
+      - meshes
+      - mjcf
+    links:
+      -
+    scripts:
+      -
+    patches:
+      -
+  - repo: https://github.com/unitreerobotics/unitree_ros
+    name: unitree_ros
+    rev: master
+    type: git
+    params:
+    sparse_paths:
+      - robots/g1_description
+    links:
+      -
+    scripts:
+      -
+    patches:
+      -
+sources_locked:
+  - repo: https://github.com/Roboparty/rpo_description
+    name: rpo_description
+    rev: 37aac9ca665e92731444a1618320078e7ba21569
+    type: git
+    params:
+    sparse_paths:
+      - urdf
+      - meshes
+      - mjcf
+    links:
+      -
+    scripts:
+      -
+    patches:
+      -
+  - repo: https://github.com/unitreerobotics/unitree_ros
+    name: unitree_ros
+    rev: ccfc6fd8430a17ba3dacef9a1e2faf64ff3b0aee
+    type: git
+    params:
+    sparse_paths:
+      - robots/g1_description
+    links:
+      -
+    scripts:
+      -
+    patches:
+      -
+default_group: ''
+groups:
+  -

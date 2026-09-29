@@ -1,0 +1,48 @@
+# RoboParty ROBOTO_ORIGIN (RPO), 23-DoF. Source: Roboparty/rpo_description
+# (CERN-OHL-W-2.0), rev 37aac9ca665e92731444a1618320078e7ba21569, gitman
+# source "rpo_description". See README.md's "Vendor pin" for the license note.
+#
+# schema is defined once in robot_description/tools/robot_schema.py.
+# Unknown keys here are a HARD ERROR (strict loader).
+#
+# Only names the source URDF and what validate.py should expect from it;
+# importer options live on robot_description.robots.urdf_common.RobotUrdfFileCfg,
+# plus the replace_cylinders_with_capsules override in robot.py.
+schema_version: 1
+robot: roboparty_rpo
+enabled: true
+
+source:
+  format: urdf
+  vendor: rpo_description
+  path: urdf/rpo.urdf
+  # Separate subtree from the URDF -- the reason mjcf_path is its own key
+  # rather than a `.with_suffix('.xml')` on `path`.
+  mjcf_path: mjcf/rpo.xml
+  ros_package_paths: []
+
+validate:
+  expected_dof: 23
+  total_mass:
+    value: 33.757
+    rel_tol: 0.01
+  min_link_mass: 0.0001
+  massless_links: []
+  nominal_joint_pos:
+    # Must match robots/roboparty_rpo/robot.py's init_state.joint_pos exactly
+    # (validate.py D4), which reads joint_groups.NOMINAL_JOINT_POS.
+    "left_thigh_pitch_joint": -0.1
+    "left_knee_joint": 0.3
+    "left_ankle_pitch_joint": -0.2
+    "left_arm_pitch_joint": 0.18
+    "left_arm_roll_joint": 0.06
+    "left_elbow_pitch_joint": 0.78
+    "right_thigh_pitch_joint": -0.1
+    "right_knee_joint": 0.3
+    "right_ankle_pitch_joint": -0.2
+    "right_arm_pitch_joint": 0.18
+    "right_arm_roll_joint": -0.06
+    "right_elbow_pitch_joint": 0.78
+  joint_limit_margin: 0.02
+  allow_self_collision_pairs: []
+  mesh_budget_mb: 50.0 # meshes are ~30 MB

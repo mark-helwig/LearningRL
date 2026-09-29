@@ -1,0 +1,10 @@
+# Stand in place for 10 s. The trivial timeline, and the one to run first on a
+# new robot: if the policy cannot hold a pose it certainly cannot walk, and a
+# failure here is a model/gain/spawn problem rather than a locomotion one.
+name: stand
+duration: 10.0
+interpolation: step
+
+commands:
+  base_velocity:
+    - {t: 0.0, lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 0.0}

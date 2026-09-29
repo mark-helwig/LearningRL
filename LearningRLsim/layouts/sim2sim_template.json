@@ -1,0 +1,203 @@
+{
+  "configById": {
+    "3D!learningrlsim": {
+      "cameraState": {
+        "distance": 4.5,
+        "perspective": true,
+        "phi": 72,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          0,
+          0,
+          0.7
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 45,
+        "fovy": 45,
+        "near": 0.01,
+        "far": 5000
+      },
+      "followMode": "follow-none",
+      "followTf": "world",
+      "scene": {
+        "meshUpAxis": "z_up",
+        "transforms": {
+          "showLabel": false,
+          "axisScale": 0,
+          "enablePreloading": true
+        }
+      },
+      "transforms": {},
+      "topics": {},
+      "layers": {
+        "learningrlsim-grid": {
+          "instanceId": "learningrlsim-grid",
+          "layerId": "foxglove.Grid",
+          "label": "Ground",
+          "visible": true,
+          "frameLocked": true,
+          "order": 1,
+          "size": 20,
+          "divisions": 20,
+          "lineWidth": 1,
+          "color": "#3f4b57",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        },
+        "learningrlsim-urdf": {
+          "instanceId": "learningrlsim-urdf",
+          "layerId": "foxglove.Urdf",
+          "label": "unitree_g1",
+          "visible": true,
+          "order": 2,
+          "sourceType": "filePath",
+          "filePath": "",
+          "url": "",
+          "parameter": "",
+          "topic": "",
+          "framePrefix": "",
+          "controlMode": "transforms",
+          "jointStatesTopic": "/joint/states",
+          "displayMode": "visual",
+          "fallbackColor": "#b8c4cc",
+          "showAxis": false,
+          "axisScale": 1,
+          "showOutlines": true,
+          "opacity": 1
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {}
+    },
+    "Plot!tracking": {
+      "title": "velocity tracking (command vs actual)",
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "paths": [
+        {
+          "value": "/cmd/velocity.commands.base_velocity[0]",
+          "label": "cmd vx",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#4e98e2",
+          "id": "velocity tracking (command vs actual)-0"
+        },
+        {
+          "value": "/sim/state.base_lin_vel_b[0]",
+          "label": "vx",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#f5774d",
+          "id": "velocity tracking (command vs actual)-1"
+        },
+        {
+          "value": "/cmd/velocity.commands.base_velocity[2]",
+          "label": "cmd wz",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#a0b563",
+          "id": "velocity tracking (command vs actual)-2"
+        },
+        {
+          "value": "/sim/state.base_ang_vel_b[2]",
+          "label": "wz",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#c07ad6",
+          "id": "velocity tracking (command vs actual)-3"
+        }
+      ]
+    },
+    "Plot!contact": {
+      "title": "foot contact (world-z GRF)",
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "paths": [
+        {
+          "value": "/sim/contact.normal_force[0]",
+          "label": "left",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#4e98e2",
+          "id": "foot contact (world-z GRF)-0"
+        },
+        {
+          "value": "/sim/contact.normal_force[1]",
+          "label": "right",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#f5774d",
+          "id": "foot contact (world-z GRF)-1"
+        }
+      ]
+    },
+    "Plot!height": {
+      "title": "base height",
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": true,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "paths": [
+        {
+          "value": "/sim/state.base_height",
+          "label": "z",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#4e98e2",
+          "id": "base height-0"
+        }
+      ]
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "3D!learningrlsim",
+    "second": {
+      "first": "Plot!tracking",
+      "second": {
+        "first": "Plot!contact",
+        "second": "Plot!height",
+        "direction": "column",
+        "splitPercentage": 50.0
+      },
+      "direction": "column",
+      "splitPercentage": 33.333333333333336
+    },
+    "direction": "row",
+    "splitPercentage": 62
+  }
+}

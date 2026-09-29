@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robot_description"
+version = "0.1.0"
+description = "Robot configs for LearningRL: per-robot Isaac Lab configs spawned directly from URDF, mesh utilities, and model validation."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+authors = [{ name = "Mark Helwig" }]
+
+# Deliberately minimal. This package is installed editable into Isaac Sim's
+# own bundled Python on the training side, where isaaclab/isaacsim/newton/mujoco
+# already exist and are NOT pip-installable as ordinary dependencies of an
+# external project -- they come from the training image. Declaring them here would either be a no-op (already
+# satisfied) or actively wrong (pulling a mismatched wheel from PyPI).
+#
+# pyyaml and numpy are genuinely this repo's own dependencies: robot_schema.py
+# parses robot.yaml, mesh_ops.py is pure-numpy STL/URDF-mesh-reference code.
+dependencies = [
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["robot_description*"]
+
+[tool.setuptools.package-data]
+robot_description = ["robots/*/robot.yaml"]
+
+# ---------------------------------------------------------------------------
+# ruff -- the only linter/formatter this repo uses (no black/isort/flake8),
+# matching LearningRLlab.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["vendor", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["robot_description"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "static: runs with no Isaac Lab, no GPU, no vendor/ checkout -- safe on Windows/CI (test_linting.py, test_robot_schema.py, test_mesh_ops.py).",
+    "sim: requires a running Isaac Lab / Newton simulation (Level E of validate.py's checks) -- never run on Windows, never run in default CI.",
+]
