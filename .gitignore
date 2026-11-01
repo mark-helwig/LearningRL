@@ -44,3 +44,8 @@ LearningRLsim/layouts/*_sim2sim.json
 Thumbs.db
 *.swp
 *~
+
+# --- external/: gitman checkouts of third-party code (tracked: gitman.yml, README.md)
+/external/*
+!/external/gitman.yml
+!/external/README.md

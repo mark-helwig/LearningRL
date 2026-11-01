@@ -1,0 +1,37 @@
+# Third-party code projects build on (retargeting, mimic tooling, ...), checked
+# out beside this file by `gitman install --root external` -- a second gitman
+# config, separate from the repo-root one that vendors robot assets. Pin
+# rationale lives in external/README.md, not here: `gitman lock` strips comments.
+location: .
+
+sources:
+  - repo: https://github.com/Roboparty/GMR
+    name: GMR
+    rev: main
+    type: git
+    params:
+    sparse_paths:
+      -
+    links:
+      -
+    scripts:
+      -
+    patches:
+      -
+default_group: ''
+groups:
+  -
+sources_locked:
+  - repo: https://github.com/Roboparty/GMR
+    name: GMR
+    rev: f7bfaead0d0b896e6b74a64bc6948ca8b09d420b
+    type: git
+    params:
+    sparse_paths:
+      -
+    links:
+      -
+    scripts:
+      -
+    patches:
+      -
