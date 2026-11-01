@@ -15,6 +15,7 @@ Nothing here may be imported on the env-cfg path -- it touches Articulation, hen
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -150,6 +151,13 @@ def _command_section(env, obs_terms: list[dict[str, Any]]) -> list[dict[str, Any
         for extra in ("heading_command", "rel_standing_envs", "resampling_time_range"):
             if hasattr(cfg, extra):
                 entry[extra] = _py(getattr(cfg, extra))
+        if hasattr(cfg, "motion_file"):
+            # An absolute path on the training machine; `write_export` copies the clip next to
+            # config.yaml and rewrites this to its bare name, so the run directory is self-contained.
+            entry["motion_file"] = str(cfg.motion_file)
+            entry["motion_joint_names"] = list(cfg.motion_joint_names)
+            entry["motion_body_names"] = list(cfg.motion_body_names)
+            entry["anchor_body_name"] = cfg.anchor_body_name
         out.append(entry)
     return out
 
@@ -302,6 +310,13 @@ def write_export(env, *, task: str, resume_path: str, robot_name: str | None = N
     export_dir = resolve_export_dir(resume_path)
     export_dir.mkdir(parents=True, exist_ok=True)
     config = build_config(env, task=task, resume_path=resume_path, robot_name=robot_name)
+    for command in config["commands"]:
+        if "motion_file" in command:
+            clip = Path(command["motion_file"])
+            # one clip per command, named for it, so two motion commands cannot overwrite each other
+            copied = f"{command['name']}.npz"
+            shutil.copy2(clip, export_dir / copied)
+            command["motion_file"] = copied
     with open(export_dir / "config.yaml", "w") as handle:
         yaml.dump(config, handle, Dumper=_ConfigDumper, sort_keys=False, default_flow_style=False)
     return export_dir

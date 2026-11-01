@@ -13,6 +13,11 @@ LearningRLlab/                    <- THE PACKAGE (nested)
 ├── export.py                     writes config.yaml beside policy.onnx for sim2sim
 ├── scenes.py, terrain_generator.py   the terrain the walks train on
 ├── LearningRL_mdp/               MDP terms shared across tasks (the left/right symmetry)
+├── tasks/mimic/rpo/              LearningRL-RPO-BeyondMimic-v0 (+ -PLAY): track a reference clip
+│   ├── rpo_beyondmimic_env_cfg.py   scene, motion command, rewards; clip body/joint order
+│   ├── mdp/                      motion command, tracking rewards, anchor observations
+│   ├── agents/rsl_rl_ppo_cfg.py
+│   └── NOTICE.md                 adapted from Roboparty/robolab (BSD-3-Clause)
 └── tasks/locomotion/
     ├── g1/                       LearningRL-G1-Walk-v0 (+ -PLAY): the base walk
     │   ├── g1_env_cfg.py         scene, commands, observations, rewards, terminations
@@ -21,6 +26,7 @@ LearningRLlab/                    <- THE PACKAGE (nested)
     └── rpo/                      LearningRL-RPO-Walk-v0 (+ -PLAY): the G1 walk, RPO swapped in
         ├── rpo_env_cfg.py        subclasses the G1 walk; overrides only what the RPO needs
         └── agents/rsl_rl_ppo_cfg.py
+data/motions/rpo/                 reference clips (.npz) for the mimic task
 scripts/                          train.py, play.py, list_envs.py
 tests/                            static tests: ruff gate, isaaclab_assets ban, -PLAY rule
 ```
@@ -34,6 +40,9 @@ Run from `/workspace/isaaclab`; log paths are CWD-relative.
 ./isaaclab.sh -p source/LearningRLlab/scripts/play.py --task LearningRL-RPO-Walk-v0-PLAY --viz kit --enable_cameras physics=newton_mjwarp --video
 python source/LearningRLlab/scripts/list_envs.py
 ```
+
+The mimic task trains the same way (`--task LearningRL-RPO-BeyondMimic-v0`); `play.py` also copies
+its reference clip into the export directory as `motion.npz`, which is what LearningRLsim replays.
 
 `play.py` also exports `policy.onnx`, `policy.onnx.data` and `config.yaml` into
 `logs/rsl_rl/<experiment>/<run>/<run>/` -- the directory LearningRLsim replays.

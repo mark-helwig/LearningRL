@@ -19,13 +19,16 @@ training happens elsewhere and returns an exported run directory
 
 Tasks: `LearningRL-G1-Walk-v0` (Unitree G1, 29-DoF) and `LearningRL-RPO-Walk-v0`
 (RoboParty RPO, 23-DoF), each with a `-PLAY` twin. The RPO walk subclasses the
-G1 walk.
+G1 walk. `LearningRL-RPO-BeyondMimic-v0` is the class's mimic reference: whole-body
+motion tracking of a clip, adapted from RoboParty's `robolab` (`tasks/mimic/rpo/`,
+license in its `NOTICE.md`). LearningRLsim replays it from frame 0 of the exported clip (see its README).
 
 ## Key Commands
 
 ```bash
 # repo root, Python 3.12 venv
 gitman install                                   # vendor assets -> robot_description/vendor/
+gitman install --root external                   # third-party code -> external/<name>/ (GMR)
 pip install -e robot_description -e LearningRLsim
 ruff check . && ruff format --check .
 pytest robot_description/tests LearningRLsim/tests
@@ -54,9 +57,11 @@ LearningRL/
 │   │   ├── export.py                config.yaml writer for sim2sim
 │   │   ├── scenes.py, terrain_generator.py
 │   │   ├── LearningRL_mdp/          shared MDP terms (symmetry.py)
-│   │   └── tasks/locomotion/{g1,rpo}/   env cfg, mdp/, agents/rsl_rl_ppo_cfg.py, gym registration
+│   │   ├── tasks/locomotion/{g1,rpo}/   env cfg, mdp/, agents/rsl_rl_ppo_cfg.py, gym registration
+│   │   └── tasks/mimic/rpo/         BeyondMimic: motion command + tracking rewards; clips in LearningRLlab/data/motions/
 │   ├── scripts/                     train.py, play.py, list_envs.py
 │   └── tests/                       static: ruff gate, isaaclab_assets ban, -PLAY rule
+├── external/                        second gitman config: third-party code (GMR) -- checkouts gitignored
 ├── robot_description/
 │   ├── robot_description/           THE package (nested layout, F6)
 │   │   ├── paths.py                 repo/vendor/build paths; urdf_path() never raises
@@ -106,6 +111,12 @@ visible to them.
   `LearningRL_mdp/` once a second task needs it.
 - **Never modify Isaac Lab source** -- copy a term into the task's `mdp/` and
   change it there.
+- **Mimic clips name their own body/joint order.** A clip's `.npz` carries no names, so the
+  task cfg declares them (`MOTION_BODY_NAMES`/`MOTION_JOINT_NAMES`, breadth-first through the
+  URDF) and `MotionLoader` reorders to the robot's by name; clips store wxyz quaternions,
+  converted to xyzw on load (F8). A command term's implementation (`commands.py`) must stay
+  behind its cfg's lazy `class_type` string (F9) -- only `commands_cfg.py` is imported with the cfg.
+  Run a mimic task with `--viz kit --enable_cameras`, like the walks (URDF conversion needs Kit).
 
 ### Pinned Isaac Lab facts
 IDs are cited from code comments -- update those when renumbering.
@@ -139,7 +150,7 @@ IDs are cited from code comments -- update those when renumbering.
   implicitly.
 
 ### Sim2sim export
-`play.py` writes `<run_dir>/<run_name>/{policy.onnx, policy.onnx.data, config.yaml}`
+`play.py` writes `<run_dir>/<run_name>/{policy.onnx, policy.onnx.data, config.yaml}` (plus `motion.npz` for a mimic task)
 by default (`--no-export` skips it, `--robot-name` overrides the sniffed robot
 key). `export.py` builds the yaml -- the contract `LearningRLsim` consumes.
 
@@ -237,6 +248,13 @@ term does not honour is an error (`_accept()` in `observations.py`) -- a silentl
 wrong observation vector walks slightly badly rather than failing.
 
 ### Facts worth keeping
+- **A motion command is the clip, not a timeline.** `MotionCommandCfg` entries carry a
+  `motion_file` (copied beside `config.yaml` by `export.py`) plus the clip's own body/joint order;
+  `commands/motion.py` reorders to `joint_order`, starts the rollout from frame 0 via
+  `RobotModel.set_state`, and picks the frame from sim time (one per policy step, as training
+  does), so `update` is idempotent. `eval.py` defaults `--duration` to the clip length.
+  `/cmd/tracking` records the error against the clip. `tests/test_motion.py` checks the clip's body
+  order and wxyz quaternions against MuJoCo forward kinematics on the real RPO.
 - **`joint_order` is not MuJoCo's order.** Remap by name; getting it wrong gives
   a robot that stands then falls plausibly.
 - **`actions.total_dim` can exceed the joint count** with more than one action
