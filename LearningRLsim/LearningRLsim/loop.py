@@ -92,6 +92,8 @@ class RolloutResult:
     saturated_steps: int = 0
     bag_path: str | None = None
     events: list[str] = field(default_factory=list)
+    motion: dict[str, dict[str, float]] | None = None
+    """Per-metric `mean`/`max` of a motion command's tracking error over the policy steps."""
 
     def summary(self) -> str:
         lines = [
@@ -102,6 +104,9 @@ class RolloutResult:
         ]
         if self.bag_path:
             lines.append(f"  bag              {self.bag_path}")
+        if self.motion:
+            for name, stats in self.motion.items():
+                lines.append(f"  {name:<20} mean {stats['mean']:.4f}  max {stats['max']:.4f}")
         if self.events:
             lines.append(f"  events           {', '.join(self.events)}")
         lines.append(f"  FELL at t={self.fall_time:.2f} s" if self.fell else "  upright throughout")
@@ -139,6 +144,7 @@ class Rollout:
         # declaration of them could disagree with the one that was compiled.
         self.objects = sim.objects
         self._placed: list[bool] = []
+        self._tracking: list[dict[str, float]] = []
 
         self.foot_ids, self.foot_names = sim.body_ids_matching(foot_bodies)
         if not self.foot_ids:
@@ -171,9 +177,9 @@ class Rollout:
         # ended that way as often as by the `x` key.
         result = self.result = RolloutResult()
 
-        self.sim.reset()
-        self._reset_objects()
         self.commands.reset()
+        self._tracking.clear()
+        self._reset_sim()
         self.ctx.last_action = self._reset_action()
         self.commands.update(0.0, self.ctx)
 
@@ -190,6 +196,7 @@ class Rollout:
         try:
             self._steps(steps, result, obs)
         finally:
+            result.motion = self._tracking_summary()
             result.sim_time = self.sim.time
             result.distance = float(np.linalg.norm(self.sim.base_pos_w[:2] - start_xy))
         return result
@@ -241,10 +248,9 @@ class Rollout:
             for event in self.commands.drain_events():
                 result.events.append(f"{event.kind}@{event.t:.2f}s")
                 if event.kind == "reset":
-                    self.sim.reset()
                     # The WHOLE scene resets, which re-arms a deferred object:
                     # it is back at staging, so `place_object` works again.
-                    self._reset_objects()
+                    self._reset_sim()
                     obs = obs_lib.assemble(self.ctx)
                 elif event.kind == "place_object":
                     self._place_from_event(event)
@@ -261,6 +267,14 @@ class Rollout:
 
             if self.pacer is not None:
                 self.pacer.wait(self.sim.time)
+
+    def _reset_sim(self) -> None:
+        """Reset the plant: nominal pose, unless a command term asks for a state of its own."""
+        self.sim.reset()
+        self._reset_objects()
+        state = self.commands.initial_state()
+        if state is not None:
+            self.sim.set_state(state)
 
     # -- scene objects ------------------------------------------------------
     def _reset_objects(self) -> None:
@@ -312,6 +326,18 @@ class Rollout:
         """
         return bool(self.sim.base_pos_w[2] < self.min_base_height or self.sim.projected_gravity_b[2] > -0.5)
 
+    def _tracking_summary(self) -> dict[str, dict[str, float]] | None:
+        if not self._tracking:
+            return None
+        return {
+            key: {
+                "mean": float(np.mean([row[key] for row in self._tracking])),
+                "max": float(np.max([row[key] for row in self._tracking])),
+            }
+            for key in self._tracking[0]
+            if key != "frame"
+        }
+
     # -- recording ----------------------------------------------------------
     def _record_meta_dependent_start(self) -> None:
         self.recorder.tick_physics()
@@ -351,6 +377,11 @@ class Rollout:
                 "damping": self.command.damping,
             },
         )
+        for name, term in self.commands.terms.items():
+            if hasattr(term, "tracking"):
+                metrics = term.tracking(self.ctx)
+                self._tracking.append(metrics)
+                self.recorder.record("/cmd/tracking", t, {"t": t, "name": name, **metrics})
         self.recorder.record(
             "/cmd/velocity",
             t,

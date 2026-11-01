@@ -179,6 +179,37 @@ class ActionGroupCfg:
 # Commands
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
+class MotionCfg:
+    """The reference clip a `MotionCommandCfg` entry plays.
+
+    The clip is an `.npz` the exporter copies into the run directory, so a run
+    stays self-contained: `file` is resolved against `config.yaml`'s directory.
+    Its arrays are stored in the order `joint_names` / `body_names` give, which
+    is the TRAINING order and need not be `joint_order` -- the term reorders.
+    """
+
+    file: Path
+    joint_names: tuple[str, ...]
+    body_names: tuple[str, ...]
+    anchor_body_name: str
+
+    @staticmethod
+    def from_dict(data: dict[str, Any], where: str, run_dir: Path) -> MotionCfg:
+        file = run_dir / str(_require(data, "motion_file", where))
+        if not file.is_file():
+            raise RunConfigError(
+                f"{where}: motion_file {file} does not exist. The exporter copies the clip next to "
+                f"config.yaml; a run directory moved without it cannot be replayed."
+            )
+        return MotionCfg(
+            file=file,
+            joint_names=tuple(str(j) for j in _require(data, "motion_joint_names", where)),
+            body_names=tuple(str(b) for b in _require(data, "motion_body_names", where)),
+            anchor_body_name=str(_require(data, "anchor_body_name", where)),
+        )
+
+
+@dataclass(frozen=True)
 class CommandCfg:
     """One entry of `commands[]`.
 
@@ -199,9 +230,11 @@ class CommandCfg:
     heading_command: bool
     rel_standing_envs: float | None
     resampling_time_range: tuple[float, float] | None
+    motion: MotionCfg | None = None
+    """Present exactly when the entry names a `motion_file`."""
 
     @staticmethod
-    def from_dict(data: dict[str, Any], where: str) -> CommandCfg:
+    def from_dict(data: dict[str, Any], where: str, run_dir: Path) -> CommandCfg:
         name = _require(data, "name", where)
         where = f"{where}[{name}]"
         obs_slice = data.get("obs_slice")
@@ -213,6 +246,7 @@ class CommandCfg:
             heading_command=bool(data.get("heading_command", False)),
             rel_standing_envs=(float(data["rel_standing_envs"]) if data.get("rel_standing_envs") is not None else None),
             resampling_time_range=_as_pair(data.get("resampling_time_range"), f"{where}.resampling_time_range"),
+            motion=MotionCfg.from_dict(data, where, run_dir) if "motion_file" in data else None,
         )
 
 
@@ -315,7 +349,7 @@ def _build(raw: dict[str, Any], where: str, path: Path) -> RunConfig:
                 for t in _require(obs_raw, "terms", f"{where}.observations")
             ),
         ),
-        commands=tuple(CommandCfg.from_dict(c, f"{where}.commands") for c in (raw.get("commands") or [])),
+        commands=tuple(CommandCfg.from_dict(c, f"{where}.commands", path.parent) for c in (raw.get("commands") or [])),
         actions=ActionGroupCfg(
             total_dim=int(_require(act_raw, "total_dim", f"{where}.actions")),
             terms=tuple(

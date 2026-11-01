@@ -271,6 +271,7 @@ def _meta(
     seed: int,
     urdf: Path | None,
     scene: Scene | None = None,
+    commands: CommandManager | None = None,
 ) -> dict:
     import LearningRLsim
 
@@ -301,6 +302,19 @@ def _meta(
             "LearningRLsim": _git_sha(Path(LearningRLsim.__file__).resolve().parents[1]),
             "robot_description": _git_sha(rd_root) if rd_root else None,
         },
+        "motion": {
+            name: {
+                "file": str(term.motion.file),
+                "sha256": _sha256(term.motion.file),
+                "frames": term.num_frames,
+                "fps": term.fps,
+                "policy_frequency_hz": cfg.policy_frequency_hz,
+            }
+            for name, term in commands.terms.items()
+            if hasattr(term, "tracking")
+        }
+        if commands
+        else {},
         "command_source": source.name if source else "zero (stand)",
         "timeline": getattr(source, "raw", None),
         "scene": _scene_meta(sim, scene),
@@ -357,6 +371,16 @@ def _scene_objects(scene: Scene | None, ahead: float | None):
     if ahead is None:
         return scene.objects
     return tuple(replace(obj, ahead=ahead) if obj.deferred else obj for obj in scene.objects)
+
+
+def motion_duration(commands: CommandManager) -> float | None:
+    """Length of the longest reference clip among the run's command terms, if any has one.
+
+    A tracking policy is only asked to follow the clip, so a rollout that outlasts it would
+    hold the last frame, and one that ends early never reaches the clip's end.
+    """
+    lengths = [term.duration for term in commands.terms.values() if hasattr(term, "tracking")]
+    return max(lengths) if lengths else None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -418,7 +442,7 @@ def main(argv: list[str] | None = None) -> int:
             # or Ctrl-C. A default length would just cut them off mid-turn.
             duration = math.inf
         else:
-            duration = source.duration if source and source.duration else 10.0
+            duration = source.duration if source and source.duration else motion_duration(commands) or 10.0
 
     sinks = []
     bag_path = None
@@ -465,7 +489,7 @@ def main(argv: list[str] | None = None) -> int:
     interrupted = False
     try:
         with rollout.recorder as recorder:
-            recorder.record("/meta/run", 0.0, _meta(cfg, sim, run_dir, source, args.seed, urdf, scene))
+            recorder.record("/meta/run", 0.0, _meta(cfg, sim, run_dir, source, args.seed, urdf, scene, commands))
             result = rollout.run(duration)
     except KeyboardInterrupt:
         # The bag is already finalised by the recorder's __exit__; say so

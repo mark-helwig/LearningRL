@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from LearningRLsim.commands.terms import CommandTerm, build
+from LearningRLsim.commands.terms import CommandTerm, InitialState, build
 from LearningRLsim.runconfig import RunConfig, RunConfigError
 
 if TYPE_CHECKING:
@@ -124,6 +124,14 @@ class CommandManager:
         for term in self.terms.values():
             term.update(ctx)
         self._pending.extend(self.source.events())
+
+    def initial_state(self) -> InitialState | None:
+        """The first state any term asks the rollout to start from."""
+        for term in self.terms.values():
+            state = term.initial_state()
+            if state is not None:
+                return state
+        return None
 
     def drain_events(self) -> list[Event]:
         events, self._pending = self._pending, []

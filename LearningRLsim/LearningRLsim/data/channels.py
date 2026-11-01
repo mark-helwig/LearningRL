@@ -286,6 +286,23 @@ CMD_VELOCITY = Channel(
     ),
 )
 
+CMD_TRACKING = Channel(
+    topic="/cmd/tracking",
+    rate=Rate.CONTROL,
+    description="How far the robot is from a motion command's current reference frame. Empty unless the run has one.",
+    schema=_object(
+        {
+            "t": _number("sim time, seconds"),
+            "name": {"type": "string", "description": "the command term"},
+            "frame": _number("index of the clip frame the policy was shown"),
+            "joint_rmse": _number("rms joint position error, radians"),
+            "anchor_pos_error": _number("anchor body position error, metres"),
+            "anchor_height_error": _number("anchor body height error, metres"),
+            "anchor_ori_error": _number("anchor body orientation error, radians"),
+        }
+    ),
+)
+
 TF = Channel(
     topic="/tf",
     rate=Rate.CONTROL,
@@ -355,6 +372,7 @@ ALL: tuple[Channel, ...] = (
     SIM_OBJECT,
     SIM_SCENE,
     CMD_VELOCITY,
+    CMD_TRACKING,
     TF,
     JOINT_STATES,
 )

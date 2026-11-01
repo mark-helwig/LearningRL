@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from LearningRLsim import actions as _actions  # noqa: F401  -- registration side effect
 from LearningRLsim import observations as _observations  # noqa: F401
+from LearningRLsim.commands import motion as _motion  # noqa: F401
 from LearningRLsim.commands import terms as _command_terms  # noqa: F401
 from LearningRLsim.registry import ACTIONS, COMMANDS, OBSERVATIONS
 

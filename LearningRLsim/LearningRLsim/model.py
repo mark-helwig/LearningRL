@@ -29,12 +29,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import mujoco
 import numpy as np
 
 from LearningRLsim.objects import ObjectSpec
 from LearningRLsim.runconfig import RunConfig
+
+if TYPE_CHECKING:
+    from LearningRLsim.commands.terms import InitialState
 
 
 class ModelError(RuntimeError):
@@ -397,6 +401,21 @@ class RobotModel:
             self.data.qpos[adr : adr + 3] = obj.initial_pos
             self.data.qpos[adr + 3 : adr + 7] = (1.0, 0.0, 0.0, 0.0)
         self.data.qvel[:] = 0.0
+        mujoco.mj_forward(self.model, self.data)
+
+    def set_state(self, state: InitialState) -> None:
+        """Start from `state` instead of the nominal pose. Call right after `reset`.
+
+        Scene objects stay where `reset` put them.
+        """
+        self.data.qpos[self.qpos_adr] = state.joint_pos
+        self.data.qpos[self.base_qpos_adr : self.base_qpos_adr + 3] = state.base_pos_w
+        self.data.qpos[self.base_qpos_adr + 3 : self.base_qpos_adr + 7] = state.base_quat_w
+        self.data.qvel[self.dof_adr] = state.joint_vel
+        self.data.qvel[self.base_dof_adr : self.base_dof_adr + 3] = state.base_lin_vel_w
+        mujoco.mj_forward(self.model, self.data)  # refreshes `xmat`, which the rotation below reads
+        # `qvel[3:6]` of a free joint is body-frame, `state`'s is world-frame (see `base_ang_vel_b`)
+        self.data.qvel[self.base_dof_adr + 3 : self.base_dof_adr + 6] = self.base_rot_w.T @ state.base_ang_vel_w
         mujoco.mj_forward(self.model, self.data)
 
     def step(self, torque: np.ndarray) -> None:

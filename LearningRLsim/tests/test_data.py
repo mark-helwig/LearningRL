@@ -16,7 +16,7 @@ pytestmark = pytest.mark.static
 
 
 def test_every_channel_has_a_schema_and_a_rate():
-    assert len(channels.ALL) == 12
+    assert len(channels.ALL) == 13
     for channel in channels.ALL:
         assert channel.topic.startswith("/")
         assert channel.schema["type"] == "object"

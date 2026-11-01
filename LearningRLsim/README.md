@@ -45,6 +45,22 @@ it: `python -m` from the repo root (or anywhere with a `LearningRLsim/` or
 `robot_description/` directory in it) imports that directory instead of the
 installed package and fails with a confusing `ImportError`.
 
+### Motion-tracking policies
+
+A mimic policy (`LearningRL-RPO-BeyondMimic-v0`) needs no command timeline: its command is the
+reference clip, which `play.py` copies into the run directory as `motion.npz`. The rollout starts
+from the clip's first frame (root pose, joints and velocities), plays one frame per policy step, and
+by default lasts exactly as long as the clip.
+
+```bash
+learningrl-sim logs/rsl_rl/<task>/<run>/<run> --live
+```
+
+Along with the usual channels the bag carries `/cmd/tracking` -- joint RMSE and the anchor body's
+position, height and orientation error against the clip -- and the end-of-run summary prints each
+one's mean and max. `--commands`/`--keyboard` still work but have nothing to drive. `--spawn-height`
+is ignored: the clip sets the starting pose.
+
 ### Spawn height
 
 The exported `config.yaml` does not record the robot's initial height, so

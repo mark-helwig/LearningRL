@@ -11,6 +11,7 @@ Only the terms a run's `config.yaml` declares are instantiated.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
 import numpy as np
@@ -24,6 +25,26 @@ if TYPE_CHECKING:
 
 def wrap_to_pi(angle: float) -> float:
     return float((angle + np.pi) % (2.0 * np.pi) - np.pi)
+
+
+@dataclass(frozen=True)
+class InitialState:
+    """A robot state a command term wants the rollout to start from.
+
+    Isaac Lab's motion command writes the reference's first frame into the sim
+    on reset, so a replay that started from the nominal standing pose would be
+    tracking a clip from a different state than it was trained from.
+    """
+
+    joint_pos: np.ndarray
+    """In `joint_order`."""
+    joint_vel: np.ndarray
+    base_pos_w: np.ndarray
+    base_quat_w: np.ndarray
+    """(w, x, y, z), MuJoCo's order."""
+    base_lin_vel_w: np.ndarray
+    base_ang_vel_w: np.ndarray
+    """World frame; the model rotates it into MuJoCo's body-frame `qvel`."""
 
 
 class CommandTerm(ABC):
@@ -57,6 +78,10 @@ class CommandTerm(ABC):
 
     def update(self, ctx: EvalContext) -> None:
         """Per-policy-step post-processing. Most terms need none."""
+
+    def initial_state(self) -> InitialState | None:
+        """The state the rollout should reset to, if this term has an opinion."""
+        return None
 
     def reset(self) -> None:
         self._fields = dict.fromkeys(self.FIELDS, 0.0)
