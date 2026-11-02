@@ -11,7 +11,7 @@ from LearningRLlab.LearningRL_mdp import symmetry
 class LearningRLG1WalkPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 50_000
-    save_interval = 500
+    save_interval = 1000
 
     experiment_name = "learningrl_g1_walk"
     run_name = "walk"
