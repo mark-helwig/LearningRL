@@ -28,6 +28,9 @@ from isaaclab.utils.configclass import configclass
 
 @configclass
 class RobotUrdfFileCfg(sim_utils.UrdfFileCfg):
+    func: str = "robot_description.robots.urdf_spawn:spawn_urdf_inertia_fixed"
+    # The importer rotates every link's inertia axes; spawn_urdf_inertia_fixed undoes it.
+    fix_principal_axes: bool = True
     fix_base: bool = False
     activate_contact_sensors: bool = True
     merge_fixed_joints: bool = True  # collapses logo/head/sensor-mount fixed joints
