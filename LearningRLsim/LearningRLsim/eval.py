@@ -72,8 +72,9 @@ def build_parser() -> argparse.ArgumentParser:
     physics.add_argument(
         "--spawn-height",
         type=float,
-        default=SimOverrides.spawn_height,
-        help="world z of the root body at reset (G1_CFG.init_state.pos[2]; pass 0.75 for the RPO)",
+        default=None,
+        help="world z of the root body at reset. Default: config.yaml's init_state.pos[2], or "
+        f"{SimOverrides.spawn_height} (G1_CFG's) on an export that predates that key",
     )
     physics.add_argument(
         "--friction",
@@ -359,6 +360,22 @@ def _scene_objects(scene: Scene | None, ahead: float | None):
     return tuple(replace(obj, ahead=ahead) if obj.deferred else obj for obj in scene.objects)
 
 
+def _overrides(args: argparse.Namespace, cfg: runconfig.RunConfig) -> SimOverrides:
+    """The flag wins; otherwise the exported spawn height is read, not assumed."""
+    if args.spawn_height is not None:
+        spawn, source = args.spawn_height, "assumed"
+    elif cfg.root_height is not None:
+        spawn, source = cfg.root_height, "read"
+    else:
+        spawn, source = SimOverrides.spawn_height, "assumed"
+    return SimOverrides(
+        spawn_height=spawn,
+        friction=args.friction,
+        gravity=args.gravity,
+        spawn_height_source=source,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -372,7 +389,6 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     run_dir = Path(args.run_dir)
-    overrides = SimOverrides(spawn_height=args.spawn_height, friction=args.friction, gravity=args.gravity)
 
     if args.keyboard and args.commands:
         build_parser().print_usage(sys.stderr)
@@ -385,6 +401,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         cfg = runconfig.load(run_dir)
+        overrides = _overrides(args, cfg)
         if args.sim_rate is not None:
             cfg = runconfig.at_sim_rate(cfg, args.sim_rate)
         mjcf = resolve_mjcf(cfg)

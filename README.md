@@ -103,11 +103,10 @@ replay it:
 
 ```bash
 mkdir my_run && tar -xzf <archive>.tar.gz -C my_run
-learningrl-sim my_run --commands walk_baseline --spawn-height 0.75
+learningrl-sim my_run --commands walk_baseline
 ```
 
-`--spawn-height 0.75` is for the RPO (the default, 0.8, is the G1's standing
-height). `walk_baseline` stands for 5 s, then walks forward, backward, left,
+`walk_baseline` stands for 5 s, then walks forward, backward, left,
 right, and turns both ways. Without `--commands` the robot just stands.
 
 The rollout prints a summary (distance walked, whether it fell) and writes an
