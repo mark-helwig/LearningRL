@@ -41,6 +41,18 @@ def test_more_actions_than_joints_loads(two_action_terms_run):
     assert cfg.num_joints == 3
 
 
+def test_root_height_is_read_from_init_state(tmp_path):
+    """Per robot -- the RPO spawns at 0.75, not the G1's 0.8."""
+    config = copy.deepcopy(MINIMAL)
+    config["init_state"] = {"pos": [0.0, 0.0, 0.75]}
+    assert runconfig.load(write_run(tmp_path, config)).root_height == 0.75
+
+
+def test_an_export_without_init_state_leaves_root_height_unset(minimal_run):
+    """Older exports predate the key; eval falls back to an ASSUMED height."""
+    assert runconfig.load(minimal_run).root_height is None
+
+
 def test_missing_config_names_the_nesting(tmp_path):
     with pytest.raises(RunConfigError, match="nests one level"):
         runconfig.load(tmp_path)

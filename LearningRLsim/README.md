@@ -27,7 +27,7 @@ MuJoCo model through it, keyed by `config.yaml`'s `robot` field.
 ```bash
 learningrl-sim <run-dir>                              # stands still for 10 s
 learningrl-sim <run-dir> --commands walk_baseline     # a scripted walk timeline
-learningrl-sim <run-dir> --spawn-height 0.75 ...      # for an RPO policy (see below)
+learningrl-sim <run-dir> --spawn-height 0.75 ...      # override the exported spawn height (see below)
 learningrl-sim <run-dir> --live                       # watch it in Foxglove as it runs
 learningrl-sim <run-dir> --keyboard                   # drive it: w/a/s/d, q/e, space, r, m, x
 learningrl-sim --list-terms                           # every observation/action/command it implements
@@ -47,9 +47,9 @@ installed package and fails with a confusing `ImportError`.
 
 ### Spawn height
 
-The exported `config.yaml` does not record the robot's initial height, so
-`--spawn-height` defaults to the G1's 0.8 m. **For an RPO policy pass
-`--spawn-height 0.75`** (`RPO_CFG`'s standing height).
+The spawn height is read from `config.yaml`'s `init_state.pos[2]` (G1 0.8 m,
+RPO 0.75 m). An export that predates that key falls back to the G1's 0.8 m, so
+**for an older RPO export pass `--spawn-height 0.75`**. The flag always wins.
 
 ### Expect some divergence on the RPO
 

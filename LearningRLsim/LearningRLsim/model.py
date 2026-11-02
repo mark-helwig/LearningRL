@@ -133,17 +133,18 @@ class SimOverrides:
     the bag's `/meta/run` marked as assumed rather than read, so a divergence
     number is never ambiguous about which of these it might be measuring. The
     defaults reproduce the training-side values documented in LearningRLlab's
-    `scenes.py` / `G1_CFG`. The exporter does not record the robot's init
-    height, so for the RPO pass `--spawn-height 0.75` (`RPO_CFG.init_state`).
+    `scenes.py` / `G1_CFG`.
     """
 
-    spawn_height: float = 0.8  # G1_CFG.init_state.pos[2]
+    spawn_height: float = 0.8  # G1_CFG.init_state.pos[2]; the fallback for an export without init_state
     friction: float = 1.0  # FLAT_TERRAIN_CFG static == dynamic == 1.0, on the TERRAIN
     gravity: float = -9.81
+    spawn_height_source: str = "assumed"
+    """"read" when `spawn_height` came from config.yaml's `init_state`."""
 
     def as_meta(self) -> dict[str, dict[str, object]]:
         return {
-            "spawn_height": {"value": self.spawn_height, "source": "assumed"},
+            "spawn_height": {"value": self.spawn_height, "source": self.spawn_height_source},
             "friction": {
                 "value": self.friction,
                 "source": "assumed",

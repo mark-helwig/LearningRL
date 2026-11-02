@@ -278,6 +278,9 @@ def build_config(env, *, task: str, resume_path: str, robot_name: str | None = N
             "joint_order": list(articulation.joint_names),
             "values": _py(articulation.data.default_joint_pos[0]),
         },
+        # Root spawn pose relative to the env origin. Per-robot (G1 0.8, RPO 0.75), so a
+        # sim2sim harness that assumed one value would drop every other robot from the wrong height.
+        "init_state": {"pos": _py(articulation.cfg.init_state.pos)},
         "actuators": _actuator_section(articulation),
     }
     return config

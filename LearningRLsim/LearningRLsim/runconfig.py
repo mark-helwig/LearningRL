@@ -250,6 +250,9 @@ class RunConfig:
     joint_order: tuple[str, ...]
     default_joint_pos: np.ndarray
     actuators: ActuatorCfg
+    root_height: float | None
+    """`init_state.pos[2]` -- the root's spawn height, or None on an export that
+    predates the key. Per robot, so it is read rather than assumed when present."""
     raw: dict[str, Any]
     """The parsed YAML verbatim, re-emitted into the bag's `/meta/run` so a bag
     is self-contained: a sim2sim result whose policy interface you cannot
@@ -339,6 +342,7 @@ def _build(raw: dict[str, Any], where: str, path: Path) -> RunConfig:
                 )
             },
         ),
+        root_height=(float(raw["init_state"]["pos"][2]) if (raw.get("init_state") or {}).get("pos") else None),
         raw=raw,
         path=path,
     )
