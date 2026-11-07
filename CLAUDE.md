@@ -17,9 +17,10 @@ Students edit tasks (and possibly robot configs) on `student/<name>` branches;
 training happens elsewhere and returns an exported run directory
 (`config.yaml` + `policy.onnx` + `policy.onnx.data`) that `LearningRLsim` replays.
 
-Tasks: `LearningRL-G1-Walk-v0` (Unitree G1, 29-DoF) and `LearningRL-RPO-Walk-v0`
-(RoboParty RPO, 23-DoF), each with a `-PLAY` twin. The RPO walk subclasses the
-G1 walk.
+Tasks: `LearningRL-G1-Walk-v0` (Unitree G1, 29-DoF), `LearningRL-RPO-Walk-v0`
+(RoboParty RPO, 23-DoF) and `LearningRL-G1-LocoManipulation-v0` (the G1 walk plus
+hand-position targets), each with a `-PLAY` twin. The RPO walk and the
+locomanipulation task both subclass the G1 walk.
 
 ## Key Commands
 
@@ -54,7 +55,8 @@ LearningRL/
 │   │   ├── export.py                config.yaml writer for sim2sim
 │   │   ├── scenes.py, terrain_generator.py
 │   │   ├── LearningRL_mdp/          shared MDP terms (symmetry.py)
-│   │   └── tasks/locomotion/{g1,rpo}/   env cfg, mdp/, agents/rsl_rl_ppo_cfg.py, gym registration
+│   │   ├── tasks/locomotion/{g1,rpo}/   env cfg, mdp/, agents/rsl_rl_ppo_cfg.py, gym registration
+│   │   └── tasks/locomanipulation/g1/   the G1 walk + HandPosCommand, its reward and weight ramp
 │   ├── scripts/                     train.py, play.py, list_envs.py
 │   └── tests/                       static: ruff gate, isaaclab_assets ban, -PLAY rule
 ├── robot_description/
@@ -68,7 +70,7 @@ LearningRL/
 └── LearningRLsim/
     ├── LearningRLsim/               eval.py (THE entrypoint), runconfig.py, registry.py, observations.py,
     │                                actions.py, model.py, policy.py, loop.py, commands/, data/
-    ├── commands/                    scripted timelines (stand, walk_baseline), by bare name
+    ├── commands/                    scripted timelines (stand, walk_baseline, reach_baseline), by bare name
     ├── scenes/                      scene objects (playground), by bare name
     ├── layouts/                     Foxglove layout template
     ├── tools/foxglove_layout.py     layout generator for a bag -- not packaged
@@ -89,9 +91,9 @@ visible to them.
   is silently clobbered.
 - **The PPO cfg sets every field explicitly**, so the file is a complete record
   of the run's hyperparameters.
-- **One wandb project per robot** (`G1-locomotion`, `RPO-locomotion`), set by
-  `wandb_project` in the runner cfg. A runner cfg that subclasses another
-  robot's must override it.
+- **One wandb project per robot and task family** (`G1-locomotion`,
+  `RPO-locomotion`, `G1-locomanipulation`), set by `wandb_project` in the runner
+  cfg. A runner cfg that subclasses another robot's or family's must override it.
 - **The `-PLAY` rule:** every task ships a `<task-id>-PLAY` twin -- its own env
   cfg subclass with a literal `scene.num_envs = 100` and a robot-tracking viewer
   (`viewer.origin_type = "asset_root"`, `viewer.asset_name`). Same agent cfg.
@@ -103,7 +105,12 @@ visible to them.
   so `rpo_env_cfg.py` repoints the G1's `joint_deviation_*` terms -- a regex that
   matches nothing raises at env build.
 - **MDP term placement:** task-local `mdp/` first; move (never copy) to
-  `LearningRL_mdp/` once a second task needs it.
+  `LearningRL_mdp/` once a second task needs it. A subclassing task's `mdp/`
+  re-exports its parent's (`locomanipulation/g1/mdp` does `from ...locomotion.g1.mdp import *`).
+- **Mirror augmentation covers every policy input.** `LearningRL_mdp/symmetry.py`
+  raises on a term it has no rule for. A command whose layout is not
+  `(vx, vy, wz)` declares `mirror_map = (perm, sign)` on its term class
+  (`HandPosCommand` swaps the hands and negates y).
 - **Never modify Isaac Lab source** -- copy a term into the task's `mdp/` and
   change it there.
 

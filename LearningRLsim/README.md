@@ -27,6 +27,7 @@ MuJoCo model through it, keyed by `config.yaml`'s `robot` field.
 ```bash
 learningrl-sim <run-dir>                              # stands still for 10 s
 learningrl-sim <run-dir> --commands walk_baseline     # a scripted walk timeline
+learningrl-sim <run-dir> --commands reach_baseline    # LocoManipulation: reach standing, then walking
 learningrl-sim <run-dir> --spawn-height 0.75 ...      # override the exported spawn height (see below)
 learningrl-sim <run-dir> --live                       # watch it in Foxglove as it runs
 learningrl-sim <run-dir> --keyboard                   # drive it: w/a/s/d, q/e, space, r, m, x
@@ -37,7 +38,7 @@ learningrl-sim --list-terms                           # every observation/action
 the last two side by side (`policy.onnx.data` holds the weights).
 
 Without `--commands` every command holds zero -- the robot stands. The
-timelines in [`commands/`](commands/) (`stand`, `walk_baseline`) resolve by bare
+timelines in [`commands/`](commands/) (`stand`, `walk_baseline`, `reach_baseline`) resolve by bare
 name, and `--scene playground` adds a few objects to walk into.
 
 `learningrl-sim` is the installed command for `python -m LearningRLsim.eval`. Prefer
@@ -63,9 +64,10 @@ numbers to differ somewhat from training; the gait should still look the same.
 An MCAP bag at `<run-dir>/sim2sim/<utc>_<seed>.mcap`, openable in Foxglove or
 PlotJuggler: the policy's observation vector split by term, its raw output,
 the joint targets and gains, torque with a saturation flag, per-foot contact,
-the commanded velocity, full sim state, one frame per link for a 3D view, and a
-`/meta/run` record carrying `config.yaml` verbatim plus the sha256 of the
-policy and the MuJoCo model. `--bag-rate control` thins the physics-rate
+every command term's value (`/cmd/velocity`; for a LocoManipulation run that
+includes the hand targets, as numbers -- they are not drawn in 3D yet), full
+sim state, one frame per link for a 3D view, and a `/meta/run` record carrying
+`config.yaml` verbatim plus the sha256 of the policy and the MuJoCo model. `--bag-rate control` thins the physics-rate
 channels; `--no-bag` skips the file.
 
 ## Watching it in Foxglove

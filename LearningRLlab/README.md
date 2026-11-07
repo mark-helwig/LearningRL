@@ -13,6 +13,11 @@ LearningRLlab/                    <- THE PACKAGE (nested)
 ├── export.py                     writes config.yaml beside policy.onnx for sim2sim
 ├── scenes.py, terrain_generator.py   the terrain the walks train on
 ├── LearningRL_mdp/               MDP terms shared across tasks (the left/right symmetry)
+├── tasks/locomanipulation/
+│   └── g1/                       LearningRL-G1-LocoManipulation-v0 (+ -PLAY): the G1 walk + hand targets
+│       ├── g1_locomanip_env_cfg.py   subclasses the G1 walk; adds the command, obs, reward, curriculum
+│       ├── mdp/                  HandPosCommand(Cfg), hand_pos_tracking_reward, linear_ramp
+│       └── agents/rsl_rl_ppo_cfg.py
 └── tasks/locomotion/
     ├── g1/                       LearningRL-G1-Walk-v0 (+ -PLAY): the base walk
     │   ├── g1_env_cfg.py         scene, commands, observations, rewards, terminations

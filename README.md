@@ -18,12 +18,13 @@ LearningRL/
 └── gitman.yml            fetches the robots' meshes into robot_description/vendor/
 ```
 
-Two robots ship with two tasks:
+Two robots ship with three tasks:
 
 | Task id | Robot |
 |---|---|
 | `LearningRL-RPO-Walk-v0` | RoboParty RPO (ROBOTO_ORIGIN), 23 joints -- **the one you work on** |
 | `LearningRL-G1-Walk-v0` | Unitree G1, 29 joints -- the base task the RPO walk inherits from |
+| `LearningRL-G1-LocoManipulation-v0` | Unitree G1 -- the G1 walk, plus reaching hand targets with either or both hands |
 
 Each has a `-PLAY` twin (e.g. `LearningRL-RPO-Walk-v0-PLAY`) that the TA uses to
 record a video and export the policy.
@@ -107,7 +108,9 @@ learningrl-sim my_run --commands walk_baseline
 ```
 
 `walk_baseline` stands for 5 s, then walks forward, backward, left,
-right, and turns both ways. Without `--commands` the robot just stands.
+right, and turns both ways. Without `--commands` the robot just stands. For a
+`LearningRL-G1-LocoManipulation-v0` run, `--commands reach_baseline` reaches with
+each hand mode while standing, then while walking and turning.
 
 The rollout prints a summary (distance walked, whether it fell) and writes an
 MCAP bag to `my_run/sim2sim/`. To look at it:
