@@ -66,7 +66,7 @@ class CommandTerm(ABC):
 class UniformVelocityCommand(CommandTerm):
     """`[lin_vel_x, lin_vel_y, ang_vel_z]` in the BASE frame.
 
-    The only command type any LearningRLlab task uses today.
+    The velocity command of every LearningRLlab task.
 
     Two behaviours of the Isaac Lab term are reproduced and one is
     deliberately not:
@@ -111,6 +111,41 @@ class UniformVelocityCommand(CommandTerm):
         error = wrap_to_pi(self._fields["heading"] - ctx.sim.heading_w)
         lo, hi = self._ang_vel_z_limits
         self._fields["ang_vel_z"] = float(np.clip(self.heading_stiffness * error, lo, hi))
+
+
+@command("HandPosCommandCfg")
+class HandPosCommand(CommandTerm):
+    """`[left_active, right_active, left_xyz, right_xyz]`, targets in the YAW-ALIGNED root frame.
+
+    LearningRL-G1-LocoManipulation-v0's hand targets. The policy reads the
+    command verbatim, so this is the whole term: the training side's one-step
+    velocity advance of the target lives in its reward and markers, never in
+    the observation. An inactive hand's target is still observed, so a
+    timeline should leave it at a sensible value rather than garbage.
+
+    Nothing is sampled -- not `mode`, not `rel_standing_envs` -- for the same
+    reason `UniformVelocityCommand` samples nothing: a scripted rollout must
+    be reproducible. All-zero (the `ZeroSource` default) is exactly the
+    training side's idle row: no hand active, both targets at the origin.
+    """
+
+    FIELDS: ClassVar[tuple[str, ...]] = (
+        "left_active",
+        "right_active",
+        "left_x",
+        "left_y",
+        "left_z",
+        "right_x",
+        "right_y",
+        "right_z",
+    )
+
+    @property
+    def dim(self) -> int:
+        return 8
+
+    def value(self) -> np.ndarray:
+        return np.array([self._fields[name] for name in self.FIELDS])
 
 
 def build(run: RunConfig, heading_stiffness: float = 1.0) -> dict[str, CommandTerm]:

@@ -28,6 +28,24 @@ def test_zero_source_stands(minimal_run):
     np.testing.assert_allclose(manager.value("base_velocity"), [0.0, 0.0, 0.0])
 
 
+def test_hand_command_idles_at_zero(locomanip_run):
+    """All zeros is the training side's idle row: no hand active, both targets at the origin."""
+    cfg = runconfig.load(locomanip_run)
+    manager = CommandManager(cfg, ZeroSource())
+    manager.update(0.0, None)
+    np.testing.assert_array_equal(manager.value("hand_track"), np.zeros(8))
+
+
+def test_reach_baseline_fills_the_hand_layout_in_order(locomanip_run):
+    """[left_active, right_active, left xyz, right xyz] -- the training command's layout."""
+    cfg = runconfig.load(locomanip_run)
+    manager = CommandManager(cfg, ScriptedSource("reach_baseline"))
+    manager.update(6.0, None)
+    np.testing.assert_allclose(manager.value("hand_track"), [0.0, 1.0, 0.3, 0.25, 0.3, 0.3, -0.25, 0.3])
+    manager.update(21.0, None)
+    np.testing.assert_allclose(manager.value("base_velocity"), [0.5, 0.0, 0.0])
+
+
 def test_step_hold_is_the_default(tmp_path, minimal_run):
     cfg = runconfig.load(minimal_run)
     path = write_timeline(

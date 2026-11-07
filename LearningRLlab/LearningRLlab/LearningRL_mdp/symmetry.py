@@ -4,6 +4,7 @@ The mirror is the reflection y -> -y in the base frame. Left/right joints pair b
 prefix; each joint's sign comes from the robot's source URDF, never from its name, so a new robot needs no
 edits here as long as its URDF is mirror-built. Observation terms are matched by their ``func``, so an
 unknown term, action term, or asymmetric default pose raises instead of silently training on a bad mirror.
+A command term whose layout is not ``(vx, vy, wz)`` declares its own ``mirror_map = (perm, sign)``.
 
 Nothing here imports Isaac Lab at module scope: the agent cfg imports this before Kit starts (F9).
 """
@@ -27,7 +28,7 @@ _OBS_SIGNS: dict[str, tuple[float, ...]] = {
     "base_lin_vel": (1.0, -1.0, 1.0),
     "base_ang_vel": (-1.0, 1.0, -1.0),
     "projected_gravity": (1.0, -1.0, 1.0),
-    "generated_commands": (1.0, -1.0, -1.0),  # (vx, vy, wz) from UniformVelocityCommand
+    "generated_commands": (1.0, -1.0, -1.0),  # (vx, vy, wz) from UniformVelocityCommand, unless `mirror_map`
 }
 _JOINT_OBS = ("joint_pos_rel", "joint_vel_rel", "joint_pos", "joint_vel")
 
@@ -138,7 +139,11 @@ def _mirror_maps(env: ManagerBasedRLEnv) -> dict[str, tuple[torch.Tensor, torch.
             term_names, obs_manager._group_obs_term_cfgs[group], obs_manager.group_obs_term_dim[group]
         ):
             func = term_cfg.func.__name__
-            if func in _OBS_SIGNS:
+            command = term_cfg.params.get("command_name") if func == "generated_commands" else None
+            mirror_map = getattr(env.command_manager.get_term(command), "mirror_map", None) if command else None
+            if mirror_map is not None:
+                p, s = list(mirror_map[0]), list(mirror_map[1])
+            elif func in _OBS_SIGNS:
                 p, s = list(range(3)), list(_OBS_SIGNS[func])
             elif func in _JOINT_OBS:
                 asset_cfg = term_cfg.params.get("asset_cfg")

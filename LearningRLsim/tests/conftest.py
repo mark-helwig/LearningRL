@@ -114,6 +114,39 @@ TWO_ACTION_TERMS["actions"]["terms"].append(
 TWO_ACTION_TERMS["observations"]["total_dim"] = 14
 TWO_ACTION_TERMS["observations"]["terms"][-1].update({"dim": 5, "slice": [9, 14]})
 
+# The same config with LearningRL-G1-LocoManipulation-v0's hand command, appended
+# to the observation exactly as the task appends it.
+LOCOMANIP = copy.deepcopy(MINIMAL)
+LOCOMANIP["task"] = "LearningRL-G1-LocoManipulation-v0-PLAY"
+LOCOMANIP["observations"]["total_dim"] = 20
+LOCOMANIP["observations"]["terms"].append(
+    {
+        "name": "hand_track",
+        "func": "generated_commands",
+        "dim": 8,
+        "slice": [12, 20],
+        "scale": 1.0,
+        "clip": None,
+        "params": {"command_name": "hand_track"},
+    }
+)
+LOCOMANIP["commands"].append(
+    {
+        "name": "hand_track",
+        "type": "HandPosCommandCfg",
+        "obs_slice": [12, 20],
+        "ranges": {
+            "pos_x": [0.0, 0.4],
+            "pos_y": [-0.45, 0.45],
+            "pos_y_left": [0.0, 0.45],
+            "pos_y_right": [-0.45, 0.0],
+            "pos_z": [0.0, 0.6],
+        },
+        "rel_standing_envs": 0.1,
+        "resampling_time_range": [0.5, 2.0],
+    }
+)
+
 
 def write_run(tmp_path: Path, config: dict, name: str = "run") -> Path:
     """Write a config.yaml into a fresh directory and return it."""
@@ -137,3 +170,8 @@ def rpo_run(tmp_path: Path) -> Path:
 @pytest.fixture
 def two_action_terms_run(tmp_path: Path) -> Path:
     return write_run(tmp_path, TWO_ACTION_TERMS, name="two_terms")
+
+
+@pytest.fixture
+def locomanip_run(tmp_path: Path) -> Path:
+    return write_run(tmp_path, LOCOMANIP, name="locomanip")

@@ -1,0 +1,50 @@
+# LearningRL-G1-LocoManipulation-v0: reach in place with each hand mode, then
+# reach while walking and turning. Hand targets are meters in the yaw-aligned
+# root frame (+x forward, +y left, +z up from the pelvis), inside the training
+# ranges: x 0..0.4, left y 0..0.45, right y -0.45..0, z 0..0.6. Training shares
+# one x and one z between the hands, so these do too.
+#
+# An inactive hand's target is still observed, so it is set to a plausible
+# sample rather than left at zero -- only a fully idle row is all zeros.
+name: reach_baseline
+duration: 35.0
+interpolation: step
+
+commands:
+  base_velocity:
+    - {t: 0.0,  lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 0.0}
+    - {t: 21.0, lin_vel_x: 0.5, lin_vel_y: 0.0, ang_vel_z: 0.0}
+    - {t: 27.0, lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 0.5}
+    - {t: 31.0, lin_vel_x: 0.0, lin_vel_y: 0.0, ang_vel_z: 0.0}
+
+  hand_track:
+    # idle
+    - {t: 0.0,  left_active: 0, right_active: 0, left_x: 0.0,  left_y: 0.0,  left_z: 0.0, right_x: 0.0,  right_y: 0.0,   right_z: 0.0}
+    # left only, forward and out
+    - {t: 3.0,  left_active: 1, right_active: 0, left_x: 0.3,  left_y: 0.25, left_z: 0.3, right_x: 0.3,  right_y: -0.25, right_z: 0.3}
+    # right only
+    - {t: 6.0,  left_active: 0, right_active: 1, left_x: 0.3,  left_y: 0.25, left_z: 0.3, right_x: 0.3,  right_y: -0.25, right_z: 0.3}
+    # both, mirrored, high
+    - {t: 9.0,  left_active: 1, right_active: 1, left_x: 0.35, left_y: 0.2,  left_z: 0.5, right_x: 0.35, right_y: -0.2,  right_z: 0.5}
+    # both, mirrored, low and wide
+    - {t: 12.0, left_active: 1, right_active: 1, left_x: 0.2,  left_y: 0.4,  left_z: 0.1, right_x: 0.2,  right_y: -0.4,  right_z: 0.1}
+    # both, asymmetric in y
+    - {t: 15.0, left_active: 1, right_active: 1, left_x: 0.25, left_y: 0.1,  left_z: 0.4, right_x: 0.25, right_y: -0.35, right_z: 0.4}
+    # idle
+    - {t: 18.0, left_active: 0, right_active: 0, left_x: 0.0,  left_y: 0.0,  left_z: 0.0, right_x: 0.0,  right_y: 0.0,   right_z: 0.0}
+    # both, while walking forward
+    - {t: 21.0, left_active: 1, right_active: 1, left_x: 0.3,  left_y: 0.2,  left_z: 0.3, right_x: 0.3,  right_y: -0.2,  right_z: 0.3}
+    # left only, while turning
+    - {t: 27.0, left_active: 1, right_active: 0, left_x: 0.3,  left_y: 0.3,  left_z: 0.4, right_x: 0.3,  right_y: -0.3,  right_z: 0.4}
+    # idle
+    - {t: 31.0, left_active: 0, right_active: 0, left_x: 0.0,  left_y: 0.0,  left_z: 0.0, right_x: 0.0,  right_y: 0.0,   right_z: 0.0}
+
+events:
+  - {t: 3.0,  event: mark, label: left reach}
+  - {t: 6.0,  event: mark, label: right reach}
+  - {t: 9.0,  event: mark, label: both high}
+  - {t: 12.0, event: mark, label: both low wide}
+  - {t: 15.0, event: mark, label: both asymmetric}
+  - {t: 21.0, event: mark, label: reach while walking}
+  - {t: 27.0, event: mark, label: reach while turning}
+  - {t: 31.0, event: mark, label: commanded stop}
