@@ -31,6 +31,12 @@ _OBS_SIGNS: dict[str, tuple[float, ...]] = {
     "generated_commands": (1.0, -1.0, -1.0),  # (vx, vy, wz) from UniformVelocityCommand, unless `mirror_map`
 }
 _JOINT_OBS = ("joint_pos_rel", "joint_vel_rel", "joint_pos", "joint_vel")
+# stance-type classes {none, left, right, double}: the mirror swaps left and right
+_STANCE_OBS = ("stance_type",)
+# per-body terms: the mirror swaps left/right bodies and applies these per-component signs
+_BODY_OBS: dict[str, tuple[float, ...]] = {
+    "feet_air_contact_time": (1.0, 1.0),
+}
 
 
 def mirror_joint_name(name: str) -> str:
@@ -150,6 +156,16 @@ def _mirror_maps(env: ManagerBasedRLEnv) -> dict[str, tuple[torch.Tensor, torch.
                 joint_ids = slice(None) if asset_cfg is None else asset_cfg.joint_ids
                 names = all_joints if isinstance(joint_ids, slice) else [all_joints[i] for i in joint_ids]
                 p, s = joint_map(names)
+            elif func in _STANCE_OBS:
+                p, s = [0, 2, 1, 3], [1.0] * 4
+            elif func in _BODY_OBS:
+                cfg = term_cfg.params.get("asset_cfg") or term_cfg.params["sensor_cfg"]
+                entity = env.scene[cfg.name]
+                find = entity.find_sensors if hasattr(entity, "find_sensors") else entity.find_bodies
+                _, bodies = find(cfg.body_names, preserve_order=cfg.preserve_order)
+                comps = _BODY_OBS[func]
+                p = [bodies.index(mirror_joint_name(b)) * len(comps) + c for b in bodies for c in range(len(comps))]
+                s = list(comps) * len(bodies)
             elif func == "last_action" and term_cfg.params.get("action_name") is None:
                 p, s = action_perm, action_sign
             else:

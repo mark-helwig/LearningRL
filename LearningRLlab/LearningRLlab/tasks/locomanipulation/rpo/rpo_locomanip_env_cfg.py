@@ -1,33 +1,36 @@
-"""Environment configuration for LearningRL-RPO-LocoManipulation-v0: the RPO walk plus wrist targets.
+"""Environment configuration for LearningRL-RPO-LocoManipulation-v0: the HCRL RPO walk plus wrist targets.
 
-``LearningRL-G1-LocoManipulation-v0`` with the RoboParty RPO swapped in -- the same relationship
-``LearningRL-RPO-Walk-v0`` has to ``LearningRL-G1-Walk-v0``, through the same
-:func:`swap_in_rpo`. One policy drives all 23 joints: it walks to the ``base_velocity`` command
-and puts its wrists where ``hand_track`` asks, so arms and legs are trained together.
+The walk is HCRL-RPO-Walk-Flat-v0 (``walk_env_cfg.py``, the Walk-v1 contact-clock gait), and the reaching half is
+``LearningRL-G1-LocoManipulation-v0``'s, moved onto the RPO. One policy drives all 23 joints: it walks to the
+``base_velocity`` command and puts its wrists where ``hand_track`` asks, so arms and legs are trained together.
 
-What differs from the G1 task, and why:
+Added on top of the walk:
 
-- **Tracked points.** The RPO has no hand or wrist link. ``hand_track`` names the forearms
-  (``<side>_elbow_yaw_link``) and :class:`RPOHandPosCommand` tracks a point ``WRIST_OFFSET``
-  along each, near the forearm tip, so the policy controls where the wrists go.
-- **Target ranges.** Resized to the RPO's arm (shoulder about 0.27 m above and 0.18 m beside the
-  root, about 0.43 m of reach) rather than the taller G1's. They cover holding a box between the
-  forearms at table height in front of the body, and lifting it.
-- **Forearm load.** ``add_forearm_mass`` adds 0-0.3 kg to each forearm at startup, so the policy
-  also learns to balance with something light held in front of it.
+- ``hand_track``: the G1 task's 8-dim command (active mask for ``[left, right]``, then a target per hand in the
+  yaw-aligned root frame), appended to the policy and critic observations. The RPO has no hand or wrist link,
+  so it names the forearms (``<side>_elbow_yaw_link``) and :class:`RPOHandPosCommand` tracks a point
+  ``WRIST_OFFSET`` along each, near the forearm tip.
+- **Target ranges** resized to the RPO's arm (shoulder about 0.27 m above and 0.18 m beside the root, about
+  0.43 m of reach). They cover holding a box between the forearms at table height in front of the body, and
+  lifting it.
+- ``hand_tracking``: the G1 task's ``exp(-error / 0.3)`` reward, weight 0 at the start and ramped linearly to
+  2.0 over the first 120k env steps (5000 PPO iterations) by the curriculum.
+- ``add_forearm_mass``: 0-0.3 kg on each forearm at startup, so the policy also learns to balance with
+  something light held in front of it.
 
-Everything else -- rewards and weights, the hand-tracking ramp, terminations, flat ground,
-physics, PPO -- is the G1 locomanipulation task's.
+Everything else -- rewards and weights (including the walk's ``track_ang_vel_z`` 1.5, not the G1 locomanip
+task's 0.5), terminations, flat ground, physics, PPO -- is the walk's.
 """
 
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.configclass import configclass
 
-from LearningRLlab.tasks.locomanipulation.g1 import g1_locomanip_env_cfg as g1_locomanip
-from LearningRLlab.tasks.locomotion.rpo.rpo_env_cfg import swap_in_rpo
-
 from . import mdp
+from . import walk_env_cfg as walk
 
 FOREARMS = ["left_elbow_yaw_link", "right_elbow_yaw_link"]
 
@@ -38,8 +41,8 @@ FOREARMS = ["left_elbow_yaw_link", "right_elbow_yaw_link"]
 
 
 @configclass
-class CommandsCfg(g1_locomanip.CommandsCfg):
-    """The G1 task's commands, with ``hand_track`` tracking the RPO's wrist points.
+class CommandsCfg(walk.CommandsCfg):
+    """The walk's velocity command plus ``hand_track`` on the RPO's wrist points.
 
     Declared here, at class level, rather than patched in ``__post_init__``: the cfg's
     ``class_type`` string is only made resolvable while the cfg instance is constructed.
@@ -66,30 +69,75 @@ class CommandsCfg(g1_locomanip.CommandsCfg):
     )
 
 
+@configclass
+class ObservationsCfg(walk.ObservationsCfg):
+    """The walk's observations with the hand command appended to both groups."""
+
+    @configclass
+    class PolicyCfg(walk.ObservationsCfg.PolicyCfg):
+        hand_track = ObsTerm(func=mdp.generated_commands, params={"command_name": "hand_track"})
+
+    @configclass
+    class CriticCfg(walk.ObservationsCfg.CriticCfg):
+        hand_track = ObsTerm(func=mdp.generated_commands, params={"command_name": "hand_track"})
+
+    policy: PolicyCfg = PolicyCfg()
+    critic: CriticCfg = CriticCfg()
+
+
+@configclass
+class RewardsCfg(walk.RewardsCfg):
+    """The walk's rewards plus hand tracking."""
+
+    # starts at 0; CurriculumCfg.hand_tracking owns the weight from then on
+    hand_tracking = RewTerm(
+        func=mdp.hand_pos_tracking_reward, weight=0.0, params={"command_name": "hand_track", "std": 0.3}
+    )
+
+
+@configclass
+class EventCfg(walk.EventCfg):
+    """The walk's events plus a light load on each forearm."""
+
+    add_forearm_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=list(FOREARMS)),
+            "mass_distribution_params": (0.0, 0.3),
+            "operation": "add",
+        },
+    )
+
+
+@configclass
+class CurriculumCfg:
+    """Curriculum terms for the MDP."""
+
+    hand_tracking = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.hand_tracking.weight",
+            "modify_fn": mdp.linear_ramp,
+            "modify_params": {"start_step": 0, "end_step": 120_000, "start_value": 0.0, "end_value": 2.0},
+        },
+    )
+
+
 ##
 # Environment configuration
 ##
 
 
 @configclass
-class LearningRLRPOLocoManipEnvCfg(g1_locomanip.LearningRLG1LocoManipEnvCfg):
-    """``LearningRLG1LocoManipEnvCfg`` with the RPO, tracking its wrist points."""
+class LearningRLRPOLocoManipEnvCfg(walk.LearningRLRPOWalkV1EnvCfg):
+    """The HCRL RPO walk (``LearningRLRPOWalkV1EnvCfg``), with wrist-position targets to track while walking."""
 
+    observations: ObservationsCfg = ObservationsCfg()
     commands: CommandsCfg = CommandsCfg()
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        swap_in_rpo(self)
-
-        self.events.add_forearm_mass = EventTerm(
-            func=mdp.randomize_rigid_body_mass,
-            mode="startup",
-            params={
-                "asset_cfg": SceneEntityCfg("robot", body_names=list(FOREARMS)),
-                "mass_distribution_params": (0.0, 0.3),
-                "operation": "add",
-            },
-        )
+    rewards: RewardsCfg = RewardsCfg()
+    events: EventCfg = EventCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
 
 
 @configclass
