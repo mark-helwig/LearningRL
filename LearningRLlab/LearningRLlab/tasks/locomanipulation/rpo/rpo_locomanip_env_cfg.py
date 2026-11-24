@@ -22,6 +22,10 @@ Added on top of the walk:
   ``base_height`` holds the pelvis near ``STANCE_HEIGHT``, ``gait_clearance`` asks for a ``SWING_HEIGHT``
   swing instead of 0.15 m, and ``joint_deviation_sagittal`` lightly pulls hip pitch, knee and ankle pitch
   back toward the default pose.
+- ``forearm_level``: for each hand with a target, rewards the forearm's elbow end being at the wrist's
+  height, so the forearms lie level along a gift's sides (the squeeze) instead of meeting it with the tip.
+  ``hand_track`` carries only wrist positions, so without this the forearm's angle is left to chance.
+  Ramped in with hand tracking (0 -> ``FOREARM_LEVEL_WEIGHT``).
 
 Everything else -- rewards and weights (including the walk's ``track_ang_vel_z`` 1.5, not the G1 locomanip
 task's 0.5), terminations, flat ground, physics, PPO -- is the walk's.
@@ -93,6 +97,9 @@ class ObservationsCfg(walk.ObservationsCfg):
 STANCE_HEIGHT = 0.73
 """Pelvis target (m). The default pose stands at 0.747 m; a little lower leaves knee bend for stepping."""
 
+FOREARM_LEVEL_WEIGHT = 1.0
+"""Final weight of ``forearm_level``, reached with the hand-tracking ramp (half of hand tracking's 2.0)."""
+
 SWING_HEIGHT = 0.09
 """Swing-foot clearance target (m) for ``gait_clearance``; the walk's 0.15 m is a lot for a ~0.55 m leg."""
 
@@ -105,6 +112,8 @@ class RewardsCfg(walk.RewardsCfg):
     hand_tracking = RewTerm(
         func=mdp.hand_pos_tracking_reward, weight=0.0, params={"command_name": "hand_track", "std": 0.3}
     )
+    # elbow end level with the wrist while a hand has a target; 0 at the start, CurriculumCfg ramps it
+    forearm_level = RewTerm(func=mdp.forearm_level, weight=0.0, params={"command_name": "hand_track", "std": 0.05})
     # the G1 walk's height term and weight, at the RPO's height
     base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": STANCE_HEIGHT})
     # light: the knees still have to bend to step
@@ -144,6 +153,19 @@ class CurriculumCfg:
             "address": "rewards.hand_tracking.weight",
             "modify_fn": mdp.linear_ramp,
             "modify_params": {"start_step": 0, "end_step": 120_000, "start_value": 0.0, "end_value": 2.0},
+        },
+    )
+    forearm_level = CurrTerm(
+        func=mdp.modify_term_cfg,
+        params={
+            "address": "rewards.forearm_level.weight",
+            "modify_fn": mdp.linear_ramp,
+            "modify_params": {
+                "start_step": 0,
+                "end_step": 120_000,
+                "start_value": 0.0,
+                "end_value": FOREARM_LEVEL_WEIGHT,
+            },
         },
     )
 

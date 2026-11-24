@@ -10,6 +10,7 @@ imports ``CommandTerm``, which reaches ``pxr`` (F9). ``HandPosCommandCfg.class_t
 
 from LearningRLlab.tasks.locomanipulation.g1.mdp import *  # noqa: F403
 
+from .arm_rewards import forearm_level
 from .commands_cfg import HandPosCommandCfg
 from .walk_observations import feet_air_contact_time, illegal_external_contact, stance_type
 from .walk_rewards import (
