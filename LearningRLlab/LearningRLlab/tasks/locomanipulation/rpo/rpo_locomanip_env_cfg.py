@@ -17,6 +17,11 @@ Added on top of the walk:
   2.0 over the first 120k env steps (5000 PPO iterations) by the curriculum.
 - ``add_forearm_mass``: 0-0.3 kg on each forearm at startup, so the policy also learns to balance with
   something light held in front of it.
+- **Stance** (added after model_7999 stood at ~0.71 m with knees at 0.67-0.76 rad, more than double the
+  default 0.30, which left carried gifts too low; the walk has no height term and rewards a 0.15 m swing):
+  ``base_height`` holds the pelvis near ``STANCE_HEIGHT``, ``gait_clearance`` asks for a ``SWING_HEIGHT``
+  swing instead of 0.15 m, and ``joint_deviation_sagittal`` lightly pulls hip pitch, knee and ankle pitch
+  back toward the default pose.
 
 Everything else -- rewards and weights (including the walk's ``track_ang_vel_z`` 1.5, not the G1 locomanip
 task's 0.5), terminations, flat ground, physics, PPO -- is the walk's.
@@ -85,13 +90,32 @@ class ObservationsCfg(walk.ObservationsCfg):
     critic: CriticCfg = CriticCfg()
 
 
+STANCE_HEIGHT = 0.73
+"""Pelvis target (m). The default pose stands at 0.747 m; a little lower leaves knee bend for stepping."""
+
+SWING_HEIGHT = 0.09
+"""Swing-foot clearance target (m) for ``gait_clearance``; the walk's 0.15 m is a lot for a ~0.55 m leg."""
+
+
 @configclass
 class RewardsCfg(walk.RewardsCfg):
-    """The walk's rewards plus hand tracking."""
+    """The walk's rewards plus hand tracking and a taller stance."""
 
     # starts at 0; CurriculumCfg.hand_tracking owns the weight from then on
     hand_tracking = RewTerm(
         func=mdp.hand_pos_tracking_reward, weight=0.0, params={"command_name": "hand_track", "std": 0.3}
+    )
+    # the G1 walk's height term and weight, at the RPO's height
+    base_height = RewTerm(func=mdp.base_height_l2, weight=-10.0, params={"target_height": STANCE_HEIGHT})
+    # light: the knees still have to bend to step
+    joint_deviation_sagittal = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-0.05,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot", joint_names=[".*_thigh_pitch_joint", ".*_knee_joint", ".*_ankle_pitch_joint"]
+            )
+        },
     )
 
 
@@ -138,6 +162,10 @@ class LearningRLRPOLocoManipEnvCfg(walk.LearningRLRPOWalkV1EnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     events: EventCfg = EventCfg()
     curriculum: CurriculumCfg = CurriculumCfg()
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.rewards.gait_clearance.params["height"] = SWING_HEIGHT
 
 
 @configclass
